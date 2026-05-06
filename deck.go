@@ -25,6 +25,9 @@ func (d deck) print() {
 	}
 }
 
-func (d deck) deal(handsize int) (deck, deck) {
-	return  d[:handsize], d[handsize:]
+func (d *deck) deal(handsize int) (deck) {
+	hand := (*d)[:handsize]
+	*d = (*d)[handsize:]
+
+	return hand
 }
