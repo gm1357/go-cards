@@ -1,7 +1,8 @@
 package main
 
-import "fmt"
-
 func main() {
-	fmt.Println("Hello, Go Cards!")
+	cards := deck{"Ace of Diamonds", "Five of Diamonds"}
+	cards = append(cards, "Six of Spades")
+
+	cards.print()
 }
