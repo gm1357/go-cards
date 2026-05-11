@@ -11,4 +11,6 @@ func main() {
 	// cards.print()
 
 	cards.saveToFile("mydeck")
+	cardsCopy := newDeckFromFile("mydeck")
+	cardsCopy.print()
 }
