@@ -17,11 +17,11 @@ func TestNewDeck(t *testing.T) {
 		t.Errorf("Expected deck length of %v, but got %v", LEN_DECK, len(d))
 	}
 
-	if d[0] != FIRST_CARD {
+	if d[0].String() != FIRST_CARD {
 		t.Errorf("Expected first card to be %v, but got %v", FIRST_CARD, d[0])
 	}
 
-	if d[len(d) - 1] != LAST_CARD {
+	if d[len(d) - 1].String() != LAST_CARD {
 		t.Errorf("Expected first card to be %v, but got %v", LAST_CARD, d[len(d) - 1])
 	}
 }

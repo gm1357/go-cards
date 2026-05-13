@@ -8,7 +8,13 @@ import (
 	"time"
 )
 
-type deck []string
+type card struct {
+	suit string
+	value string
+}
+
+type deck []card
+
 
 func newDeck() deck {
 	cards := deck{}
@@ -18,11 +24,16 @@ func newDeck() deck {
 
 	for _, suit := range cardSuits {
 		for _, value := range cardValues {
-			cards = append(cards, value + " of " + suit)
+			c := card{suit: suit, value: value}
+			cards = append(cards, c)
 		}
 	}
 
 	return cards
+}
+
+func (c card) String() string {
+	return fmt.Sprintf("%v of %v", c.value, c.suit)
 }
 
 func (d deck) print() {
@@ -39,11 +50,29 @@ func (d *deck) deal(handsize int) (deck) {
 }
 
 func (d deck) toString() string {
-	return strings.Join([]string(d), ",")
+	var deckStrings []string
+
+	for _, v := range d {
+		deckStrings = append(deckStrings, fmt.Sprintf("%v:%v", v.value, v.suit))
+	}
+
+	return strings.Join(deckStrings, ",")
 }
 
 func (d deck) saveToFile(filename string) error {
 	return os.WriteFile(filename, []byte(d.toString()), 0666)
+}
+
+func newDeckFromStringArr(s []string) deck {
+	d := deck{}
+
+	for _, v := range s {
+		cSplit := strings.Split(v, ":")
+		c := card{value: cSplit[0], suit: cSplit[1]}
+		d = append(d, c)
+	}
+
+	return d
 }
 
 func newDeckFromFile(filename string) deck {
@@ -55,7 +84,7 @@ func newDeckFromFile(filename string) deck {
 	}
 
 	s := strings.Split(string(bs), ",")
-	return deck(s)
+	return newDeckFromStringArr(s)
 }
 
 func (d deck) shuffle() {
