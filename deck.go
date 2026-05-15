@@ -9,8 +9,8 @@ import (
 )
 
 type card struct {
-	suit string
-	value string
+	Suit string `json:"suit"`
+	Value string `json:"value"`
 }
 
 type deck []card
@@ -24,7 +24,7 @@ func newDeck() deck {
 
 	for _, suit := range cardSuits {
 		for _, value := range cardValues {
-			c := card{suit: suit, value: value}
+			c := card{Suit: suit, Value: value}
 			cards = append(cards, c)
 		}
 	}
@@ -33,7 +33,7 @@ func newDeck() deck {
 }
 
 func (c card) String() string {
-	return fmt.Sprintf("%v of %v", c.value, c.suit)
+	return fmt.Sprintf("%v of %v", c.Value, c.Suit)
 }
 
 func (d deck) print() {
@@ -53,7 +53,7 @@ func (d deck) toString() string {
 	var deckStrings []string
 
 	for _, v := range d {
-		deckStrings = append(deckStrings, fmt.Sprintf("%v:%v", v.value, v.suit))
+		deckStrings = append(deckStrings, fmt.Sprintf("%v:%v", v.Value, v.Suit))
 	}
 
 	return strings.Join(deckStrings, ",")
@@ -68,7 +68,7 @@ func newDeckFromStringArr(s []string) deck {
 
 	for _, v := range s {
 		cSplit := strings.Split(v, ":")
-		c := card{value: cSplit[0], suit: cSplit[1]}
+		c := card{Value: cSplit[0], Suit: cSplit[1]}
 		d = append(d, c)
 	}
 
@@ -87,13 +87,21 @@ func newDeckFromFile(filename string) deck {
 	return newDeckFromStringArr(s)
 }
 
-func (d deck) shuffle() {
+func getRandomCardPosition(d deck) (int) {
 	source := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(source)
 
+	return r.Intn(len(d) - 1)
+}
+
+func (d deck) shuffle() {
 	for i := range d {
-		newPosition := r.Intn(len(d) - 1)
+		newPosition := getRandomCardPosition(d)
 
 		d[i], d[newPosition] = d[newPosition], d[i]
 	}
+}
+
+func (d deck) getRandomCard() (card) {
+	return d[getRandomCardPosition(d)]
 }
