@@ -62,6 +62,22 @@ curl -X POST "http://localhost:8080/deck/a1b2c3.../deal?handSize=5"
 # [{"suit":"Spades","value":"Ace"}, ...]
 ```
 
+## Swagger docs
+
+API endpoints are annotated with [swaggo/swag](https://github.com/swaggo/swag) declarative comments. The generated OpenAPI spec lives in the `docs/` package and is served by the running server at:
+
+- `http://localhost:8080/swagger/` — Swagger UI
+- `http://localhost:8080/swagger/doc.json` — raw OpenAPI JSON
+
+To regenerate the docs after editing handler comments:
+
+```sh
+go install github.com/swaggo/swag/cmd/swag@latest
+swag init -g main.go --parseDependency
+```
+
+`--parseDependency` is needed so swag follows the `cards/deck` import and picks up `deck.Card` for response schemas.
+
 ## Storage
 
 Decks are saved as plain-text files at `decks/<id>.deck`, one card per comma-separated entry in the form `Value:Suit`. The `deck` package exposes `SaveToFile` and `NewFromFile` for the format.
