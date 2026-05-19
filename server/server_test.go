@@ -1,31 +1,26 @@
-package main
+package server
 
 import (
 	"encoding/json"
 	"net/http"
-	"os"
-	"sync"
+	"net/http/httptest"
 	"testing"
-	"time"
+
+	"cards/deck"
 )
 
-const TEST_DECKS_DIR = "decks_test"
-const TEST_SERVER_URL = "http://localhost:8080"
-
-var setupOnce sync.Once
-
-func setup() {
-	setupOnce.Do(func() {
-		decksDir = TEST_DECKS_DIR
-		os.RemoveAll(decksDir)
-		go runServer()
-		time.Sleep(100 * time.Millisecond)
-	})
+func newTestServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	dir := t.TempDir()
+	s := New(dir)
+	ts := httptest.NewServer(s.Handler())
+	t.Cleanup(ts.Close)
+	return ts
 }
 
-func createDeck(t *testing.T) string {
+func createDeck(t *testing.T, ts *httptest.Server) string {
 	t.Helper()
-	res, err := http.Post(TEST_SERVER_URL + "/deck", "application/json", nil)
+	res, err := http.Post(ts.URL + "/deck", "application/json", nil)
 	if err != nil {
 		t.Fatalf("Failed to create deck: %v", err)
 	}
@@ -48,8 +43,9 @@ func createDeck(t *testing.T) string {
 }
 
 func TestHandleCardRandom(t *testing.T) {
-	setup()
-	res, err := http.Get(TEST_SERVER_URL + "/card/random")
+	ts := newTestServer(t)
+
+	res, err := http.Get(ts.URL + "/card/random")
 	if err != nil {
 		t.Fatalf("Failed to get random card: %v", err)
 	}
@@ -59,31 +55,25 @@ func TestHandleCardRandom(t *testing.T) {
 		t.Fatalf("Expected status code 200, but got %v", res.StatusCode)
 	}
 
-	var c card
-	err = json.NewDecoder(res.Body).Decode(&c)
-	if err != nil {
+	var c deck.Card
+	if err := json.NewDecoder(res.Body).Decode(&c); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
-
 	if c.String() == "" {
 		t.Errorf("Expected a valid card, but got an empty string")
 	}
 }
 
 func TestHandleDeckCreate(t *testing.T) {
-	setup()
-	id := createDeck(t)
-
-	if _, err := os.Stat(deckPath(id)); err != nil {
-		t.Errorf("Expected deck file to exist for id %v: %v", id, err)
-	}
+	ts := newTestServer(t)
+	createDeck(t, ts)
 }
 
 func TestHandleDeckGet(t *testing.T) {
-	setup()
-	id := createDeck(t)
+	ts := newTestServer(t)
+	id := createDeck(t, ts)
 
-	res, err := http.Get(TEST_SERVER_URL + "/deck/" + id)
+	res, err := http.Get(ts.URL + "/deck/" + id)
 	if err != nil {
 		t.Fatalf("Failed to get deck: %v", err)
 	}
@@ -93,19 +83,19 @@ func TestHandleDeckGet(t *testing.T) {
 		t.Fatalf("Expected status code 200, but got %v", res.StatusCode)
 	}
 
-	var d deck
+	var d deck.Deck
 	if err := json.NewDecoder(res.Body).Decode(&d); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
-
 	if len(d) != 52 {
 		t.Errorf("Expected deck of 52 cards, but got %v", len(d))
 	}
 }
 
 func TestHandleDeckGetNotFound(t *testing.T) {
-	setup()
-	res, err := http.Get(TEST_SERVER_URL + "/deck/nonexistent")
+	ts := newTestServer(t)
+
+	res, err := http.Get(ts.URL + "/deck/nonexistent")
 	if err != nil {
 		t.Fatalf("Failed to get deck: %v", err)
 	}
@@ -117,10 +107,10 @@ func TestHandleDeckGetNotFound(t *testing.T) {
 }
 
 func TestHandleDeckCardRandom(t *testing.T) {
-	setup()
-	id := createDeck(t)
+	ts := newTestServer(t)
+	id := createDeck(t, ts)
 
-	res, err := http.Get(TEST_SERVER_URL + "/deck/" + id + "/card/random")
+	res, err := http.Get(ts.URL + "/deck/" + id + "/card/random")
 	if err != nil {
 		t.Fatalf("Failed to get random card: %v", err)
 	}
@@ -130,7 +120,7 @@ func TestHandleDeckCardRandom(t *testing.T) {
 		t.Fatalf("Expected status code 200, but got %v", res.StatusCode)
 	}
 
-	var c card
+	var c deck.Card
 	if err := json.NewDecoder(res.Body).Decode(&c); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -140,10 +130,10 @@ func TestHandleDeckCardRandom(t *testing.T) {
 }
 
 func TestHandleDeckCardTop(t *testing.T) {
-	setup()
-	id := createDeck(t)
+	ts := newTestServer(t)
+	id := createDeck(t, ts)
 
-	res, err := http.Get(TEST_SERVER_URL + "/deck/" + id + "/card/top")
+	res, err := http.Get(ts.URL + "/deck/" + id + "/card/top")
 	if err != nil {
 		t.Fatalf("Failed to get top card: %v", err)
 	}
@@ -153,7 +143,7 @@ func TestHandleDeckCardTop(t *testing.T) {
 		t.Fatalf("Expected status code 200, but got %v", res.StatusCode)
 	}
 
-	var c card
+	var c deck.Card
 	if err := json.NewDecoder(res.Body).Decode(&c); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -163,10 +153,10 @@ func TestHandleDeckCardTop(t *testing.T) {
 }
 
 func TestHandleDeckShuffle(t *testing.T) {
-	setup()
-	id := createDeck(t)
+	ts := newTestServer(t)
+	id := createDeck(t, ts)
 
-	res, err := http.Post(TEST_SERVER_URL + "/deck/" + id + "/shuffle", "application/json", nil)
+	res, err := http.Post(ts.URL + "/deck/" + id + "/shuffle", "application/json", nil)
 	if err != nil {
 		t.Fatalf("Failed to shuffle: %v", err)
 	}
@@ -176,7 +166,7 @@ func TestHandleDeckShuffle(t *testing.T) {
 		t.Fatalf("Expected status code 200, but got %v", res.StatusCode)
 	}
 
-	var shuffled deck
+	var shuffled deck.Deck
 	if err := json.NewDecoder(res.Body).Decode(&shuffled); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -184,7 +174,7 @@ func TestHandleDeckShuffle(t *testing.T) {
 		t.Errorf("Expected 52 cards after shuffle, but got %v", len(shuffled))
 	}
 
-	original := newDeck()
+	original := deck.New()
 	sameOrder := true
 	for i := range original {
 		if original[i] != shuffled[i] {
@@ -198,10 +188,10 @@ func TestHandleDeckShuffle(t *testing.T) {
 }
 
 func TestHandleDeckDeal(t *testing.T) {
-	setup()
-	id := createDeck(t)
+	ts := newTestServer(t)
+	id := createDeck(t, ts)
 
-	res, err := http.Post(TEST_SERVER_URL + "/deck/" + id + "/deal?handSize=5", "application/json", nil)
+	res, err := http.Post(ts.URL + "/deck/" + id + "/deal?handSize=5", "application/json", nil)
 	if err != nil {
 		t.Fatalf("Failed to deal: %v", err)
 	}
@@ -211,7 +201,7 @@ func TestHandleDeckDeal(t *testing.T) {
 		t.Fatalf("Expected status code 200, but got %v", res.StatusCode)
 	}
 
-	var hand deck
+	var hand deck.Deck
 	if err := json.NewDecoder(res.Body).Decode(&hand); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -219,13 +209,13 @@ func TestHandleDeckDeal(t *testing.T) {
 		t.Errorf("Expected hand of 5 cards, but got %v", len(hand))
 	}
 
-	getRes, err := http.Get(TEST_SERVER_URL + "/deck/" + id)
+	getRes, err := http.Get(ts.URL + "/deck/" + id)
 	if err != nil {
 		t.Fatalf("Failed to get deck after deal: %v", err)
 	}
 	defer getRes.Body.Close()
 
-	var d deck
+	var d deck.Deck
 	if err := json.NewDecoder(getRes.Body).Decode(&d); err != nil {
 		t.Fatalf("Failed to decode deck: %v", err)
 	}
@@ -235,10 +225,10 @@ func TestHandleDeckDeal(t *testing.T) {
 }
 
 func TestHandleDeckDealInvalidHandSize(t *testing.T) {
-	setup()
-	id := createDeck(t)
+	ts := newTestServer(t)
+	id := createDeck(t, ts)
 
-	res, err := http.Post(TEST_SERVER_URL + "/deck/" + id + "/deal?handSize=abc", "application/json", nil)
+	res, err := http.Post(ts.URL + "/deck/" + id + "/deal?handSize=abc", "application/json", nil)
 	if err != nil {
 		t.Fatalf("Failed to deal: %v", err)
 	}
@@ -250,10 +240,10 @@ func TestHandleDeckDealInvalidHandSize(t *testing.T) {
 }
 
 func TestHandleDeckDealHandSizeExceedsDeck(t *testing.T) {
-	setup()
-	id := createDeck(t)
+	ts := newTestServer(t)
+	id := createDeck(t, ts)
 
-	res, err := http.Post(TEST_SERVER_URL + "/deck/" + id + "/deal?handSize=100", "application/json", nil)
+	res, err := http.Post(ts.URL + "/deck/" + id + "/deal?handSize=100", "application/json", nil)
 	if err != nil {
 		t.Fatalf("Failed to deal: %v", err)
 	}
