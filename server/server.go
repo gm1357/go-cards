@@ -41,6 +41,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /deck/{id}/card/top", s.handleDeckCardTop)
 	s.mux.HandleFunc("POST /deck/{id}/shuffle", s.handleDeckShuffle)
 	s.mux.HandleFunc("POST /deck/{id}/deal", s.handleDeckDeal)
+	s.mux.HandleFunc("DELETE /deck/{id}", s.handleDeckDelete)
 
 	s.mux.Handle("GET /swagger/", httpSwagger.Handler(
 		httpSwagger.URL("doc.json"),
@@ -202,6 +203,36 @@ func (s *Server) handleDeckShuffle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, d)
+}
+
+// handleDeckDelete godoc
+//
+//	@Summary		Delete a stored deck
+//	@Description	Removes the stored deck file for the given id.
+//	@Tags			decks
+//	@Param			id	path		string	true	"Deck ID"
+//	@Success		204	"no content"
+//	@Failure		404	{string}	string	"deck not found"
+//	@Failure		500	{string}	string	"internal server error"
+//	@Router			/deck/{id} [delete]
+func (s *Server) handleDeckDelete(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	path := s.deckPath(id)
+
+	if _, err := os.Stat(path); err != nil {
+		if os.IsNotExist(err) {
+			http.Error(w, "deck not found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := os.Remove(path); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // handleDeckDeal godoc

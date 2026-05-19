@@ -48,6 +48,7 @@ Server tests spin up an isolated `httptest.Server` with a per-test temp director
 | GET    | `/deck/{id}/card/top`         | Return the top card of the stored deck.                     |
 | POST   | `/deck/{id}/shuffle`          | Shuffle the stored deck in place and return it.             |
 | POST   | `/deck/{id}/deal?handSize=N`  | Deal `N` cards off the top. Stored deck shrinks by `N`.     |
+| DELETE | `/deck/{id}`                  | Delete the stored deck. Returns 204 on success.             |
 
 ### Example
 

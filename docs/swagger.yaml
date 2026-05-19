@@ -50,6 +50,28 @@ paths:
       tags:
       - decks
   /deck/{id}:
+    delete:
+      description: Removes the stored deck file for the given id.
+      parameters:
+      - description: Deck ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: no content
+        "404":
+          description: deck not found
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Delete a stored deck
+      tags:
+      - decks
     get:
       description: Returns the full stored deck for the given id.
       parameters:

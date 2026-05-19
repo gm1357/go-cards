@@ -239,6 +239,52 @@ func TestHandleDeckDealInvalidHandSize(t *testing.T) {
 	}
 }
 
+func TestHandleDeckDelete(t *testing.T) {
+	ts := newTestServer(t)
+	id := createDeck(t, ts)
+
+	req, err := http.NewRequest(http.MethodDelete, ts.URL+"/deck/"+id, nil)
+	if err != nil {
+		t.Fatalf("Failed to build request: %v", err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Failed to delete deck: %v", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusNoContent {
+		t.Fatalf("Expected status code 204, but got %v", res.StatusCode)
+	}
+
+	getRes, err := http.Get(ts.URL + "/deck/" + id)
+	if err != nil {
+		t.Fatalf("Failed to get deck: %v", err)
+	}
+	defer getRes.Body.Close()
+	if getRes.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected 404 after delete, but got %v", getRes.StatusCode)
+	}
+}
+
+func TestHandleDeckDeleteNotFound(t *testing.T) {
+	ts := newTestServer(t)
+
+	req, err := http.NewRequest(http.MethodDelete, ts.URL+"/deck/nonexistent", nil)
+	if err != nil {
+		t.Fatalf("Failed to build request: %v", err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("Failed to delete deck: %v", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected status code 404, but got %v", res.StatusCode)
+	}
+}
+
 func TestHandleDeckDealHandSizeExceedsDeck(t *testing.T) {
 	ts := newTestServer(t)
 	id := createDeck(t, ts)
