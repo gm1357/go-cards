@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -24,5 +25,6 @@ func handleCardRandom(w http.ResponseWriter, r *http.Request) {
 func runServer() {
 	http.HandleFunc("/card/random", handleCardRandom)
 
+	fmt.Println("Server is running on http://localhost:8080")
     log.Fatal(http.ListenAndServe(":8080", nil))
 }
